@@ -2,8 +2,9 @@ import { Ratelimit } from "@upstash/ratelimit";
 import redis from "../../utils/redis";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
+import axios from "axios"; // Import axios
+import FormData from "form-data"; // Import form-data
 
-// Create a new ratelimiter, that allows 5 requests per 24 hours
 const ratelimit = redis
   ? new Ratelimit({
       redis: redis,
@@ -13,81 +14,62 @@ const ratelimit = redis
   : undefined;
 
 export async function POST(request: Request) {
-  // Rate Limiter Code
   if (ratelimit) {
-    const headersList = headers();
+    const headersList = await headers();
     const ipIdentifier = headersList.get("x-real-ip");
-
     const result = await ratelimit.limit(ipIdentifier ?? "");
-
     if (!result.success) {
-      return new Response(
-        "Too many uploads in 1 day. Please try again in a 24 hours.",
-        {
-          status: 429,
-          headers: {
-            "X-RateLimit-Limit": result.limit,
-            "X-RateLimit-Remaining": result.remaining,
-          } as any,
-        }
-      );
+      return new Response("Too many uploads in 1 day.", { status: 429 });
     }
   }
 
-  const { imageUrl, theme, room } = await request.json();
+  try {
+    const { imageUrl, theme, room } = await request.json();
 
-  // POST request to Replicate to start the image restoration generation process
-  let startResponse = await fetch("https://api.replicate.com/v1/predictions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Token " + process.env.REPLICATE_API_KEY,
-    },
-    body: JSON.stringify({
-      version:
-        "854e8727697a057c525cdb45ab037f64ecca770a1769cc52287c2e56472a247b",
-      input: {
-        image: imageUrl,
-        prompt:
-          room === "Gaming Room"
-            ? "a room for gaming with gaming computers, gaming consoles, and gaming chairs"
-            : `a ${theme.toLowerCase()} ${room.toLowerCase()}`,
-        a_prompt:
-          "best quality, extremely detailed, photo from Pinterest, interior, cinematic photo, ultra-detailed, ultra-realistic, award-winning",
-        n_prompt:
-          "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality",
-      },
-    }),
-  });
+    // 1. Convert the base64 data URL to a Buffer
+    const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
+    const imageBuffer = Buffer.from(base64Data, "base64");
 
-  let jsonStartResponse = await startResponse.json();
-
-  let endpointUrl = jsonStartResponse.urls.get;
-
-  // GET request to get the status of the image restoration process & return the result when it's ready
-  let restoredImage: string | null = null;
-  while (!restoredImage) {
-    // Loop in 1s intervals until the alt text is ready
-    console.log("polling for result...");
-    let finalResponse = await fetch(endpointUrl, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Token " + process.env.REPLICATE_API_KEY,
-      },
+    // 2. Prepare the form data using the 'form-data' library
+    const formData = new FormData();
+    formData.append("init_image", imageBuffer, {
+      filename: "init_image.png",
+      contentType: "image/png",
     });
-    let jsonFinalResponse = await finalResponse.json();
+    formData.append(
+      "text_prompts[0][text]",
+      `A photo of a ${theme.toLowerCase()} ${room.toLowerCase()}, award-winning, best quality, extremely detailed, cinematic, ultra-realistic`
+    );
+    formData.append("init_image_mode", "IMAGE_STRENGTH");
+    formData.append("image_strength", "0.35");
 
-    if (jsonFinalResponse.status === "succeeded") {
-      restoredImage = jsonFinalResponse.output;
-    } else if (jsonFinalResponse.status === "failed") {
-      break;
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
+    // 3. Make the API call using Axios
+    const response = await axios.post(
+      "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/image-to-image",
+      formData,
+      {
+        headers: {
+          ...formData.getHeaders(),
+          Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
+          Accept: "application/json",
+        },
+      }
+    );
+
+    // 4. Handle the successful response
+    const responseJSON = response.data;
+    const restoredImage = responseJSON.artifacts[0].base64;
+    const finalImageDataUrl = `data:image/png;base64,${restoredImage}`;
+
+    return NextResponse.json({
+      output: [finalImageDataUrl],
+    });
+  } catch (error: any) {
+    // 5. Handle any errors from the Axios request
+    console.error("Stability AI Error:", error.response?.data || error.message);
+    return NextResponse.json(
+      { error: "Failed to generate image." },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json(
-    restoredImage ? restoredImage : "Failed to restore image"
-  );
 }
