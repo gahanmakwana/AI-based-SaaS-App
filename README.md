@@ -1,55 +1,61 @@
-# [RoomGPT](https://roomGPT.io) - redesign your room with AI
+Interiror Designer ✨
+Interiror Designer is a web application that uses AI to redesign interior spaces. Users can upload a photo of their room, select a new theme, and instantly receive a photorealistic rendering of their redesigned space. This project is built with Next.js and powered by the Stability AI API.
 
-This is the previous and open source version of RoomGPT.io (a paid SaaS product). It's the very first version of roomGPT without the auth, payments, or additional features and it's simple to clone, deploy, and play around with.
+## Key Features 🚀
+AI-Powered Redesign: Leverages the Stability AI API to generate new room designs based on an initial image.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Nutlope/roomGPT&env=REPLICATE_API_KEY&project-name=room-GPT&repo-name=roomGPT)
+Multiple Themes: Users can choose from various themes like Modern, Minimalist, Vintage, and more.
 
-[![Room GPT](./public/screenshot.png)](https://roomGPT.io)
+Simple Interface: An intuitive and clean user interface for a seamless experience.
 
-## How it works
+Fast & Responsive: Built with Next.js and styled with Tailwind CSS for a high-performance, mobile-friendly design.
 
-It uses an ML model called [ControlNet](https://github.com/lllyasviel/ControlNet) to generate variations of rooms. This application gives you the ability to upload a photo of any room, which will send it through this ML Model using a Next.js API route, and return your generated room. The ML Model is hosted on [Replicate](https://replicate.com) and [Bytescale](https://www.bytescale.com/) is used for image storage.
+## Deploy Link 
+https://interior-designer-ai.vercel.app/
+## Technologies Used 💻
+Framework: Next.js
 
-## Running Locally
+Styling: Tailwind CSS
 
-### Cloning the repository the local machine.
+AI Model: Stability AI (Stable Diffusion)
 
-```bash
-git clone https://github.com/Nutlope/roomGPT
-```
+Deployment: Vercel
 
-### Creating a account on Replicate to get an API key.
+## Getting Started
+To get a local copy up and running, follow these simple steps.
 
-1. Go to [Replicate](https://replicate.com/) to make an account.
-2. Click on your profile picture in the top left corner, and click on "API Tokens".
-3. Here you can find your API token. Copy it.
+### Prerequisites
+Node.js (v18 or later)
 
-### Storing the API keys in .env
+npm or yarn
 
-Create a file in root directory of project with env. And store your API key in it, as shown in the .example.env file.
+### Installation
+Clone the repo
 
-If you'd also like to do rate limiting, create an account on UpStash, create a Redis database, and populate the two environment variables in `.env` as well. If you don't want to do rate limiting, you don't need to make any changes.
+Bash
 
-### Installing the dependencies.
+git clone https://github.com/gahanmakwana/AI-based-SaaS-app.git
+Navigate to the project directory
 
-```bash
+Bash
+
+cd AI-based-SaaS-App
+Install NPM packages
+
+Bash
+
 npm install
-```
+Set up your environment variables
 
-### Running the application.
+Create a file named .env.local in the root of your project.
 
-Then, run the application in the command line and it will be available at `http://localhost:3000`.
+Add your Stability AI API key to it:
 
-```bash
+STABILITY_API_KEY=sk-YourSecretKeyHere
+Run the development server
+
+Bash
+
 npm run dev
-```
+Now, open http://localhost:3000 in your browser to see the application.
 
-## One-Click Deploy
-
-Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=vercel-examples):
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Nutlope/roomGPT&env=REPLICATE_API_KEY&project-name=room-GPT&repo-name=roomGPT)
-
-## License
-
-This repo is MIT licensed.
